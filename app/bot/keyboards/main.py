@@ -52,11 +52,38 @@ def month_keyboard(
     return builder.as_markup()
 
 
-def categories_keyboard(categories: list[Category]) -> InlineKeyboardMarkup:
+def categories_keyboard(
+    categories: list[Category], *, browsing: bool = False,
+) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
+    prefix = "viewcat" if browsing else "cat"
     for cat in categories:
-        builder.button(text=f"{cat.emoji} {cat.name}", callback_data=f"cat:{cat.id}")
+        builder.button(text=f"{cat.emoji} {cat.name}", callback_data=f"{prefix}:{cat.id}")
     builder.adjust(2)
+    builder.row(InlineKeyboardButton(text="⬅️ Головне меню", callback_data="menu:main"))
+    return builder.as_markup()
+
+
+def category_periods_keyboard(
+    category_id: int, *, period: str | None = None, page: int = 0, pages: int = 1,
+) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    navigation = []
+    if period is not None and page > 0:
+        navigation.append(InlineKeyboardButton(
+            text="⬅️ Попередні", callback_data=f"catreport:{category_id}:{period}:{page - 1}",
+        ))
+    if period is not None and page + 1 < pages:
+        navigation.append(InlineKeyboardButton(
+            text="Наступні ➡️", callback_data=f"catreport:{category_id}:{period}:{page + 1}",
+        ))
+    if navigation:
+        builder.row(*navigation)
+    builder.row(*[
+        InlineKeyboardButton(text=label, callback_data=f"catreport:{category_id}:{value}:0")
+        for label, value in (("📅 День", "today"), ("📆 Тиждень", "week"), ("📊 Місяць", "month"))
+    ])
+    builder.row(InlineKeyboardButton(text="⬅️ Категорії", callback_data="menu:categories"))
     builder.row(InlineKeyboardButton(text="⬅️ Головне меню", callback_data="menu:main"))
     return builder.as_markup()
 

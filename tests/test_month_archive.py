@@ -155,7 +155,7 @@ async def test_category_upgrade_keeps_ids_and_historical_child_expenses(database
         # Model an existing database with the original ten categories.
         await session.execute(delete(Category).where(
             Category.family_id == family_id,
-            Category.name.in_(("Подорожі", "Подарунки", "Покупки")),
+            Category.name.in_(("Подорожі", "Подарунки", "Покупки", "Beauty")),
         ))
         old = Category(
             family_id=family_id, name="Діти", emoji="👶", sort_order=7, is_active=True,
@@ -177,7 +177,7 @@ async def test_category_upgrade_keeps_ids_and_historical_child_expenses(database
 
     active = await budget.categories(CHAT_ID)
     assert [item.name for item in active] == [name for name, _ in DEFAULT_CATEGORIES]
-    assert len(active) == 12
+    assert len(active) == 13
     assert active[0].id == food_id
     assert await budget.category(CHAT_ID, old_id) is None
     async with sessions() as session:
@@ -187,7 +187,7 @@ async def test_category_upgrade_keeps_ids_and_historical_child_expenses(database
         assert saved.amount_grosz == 12550 and saved.category_id == old_id
         assert await session.scalar(select(func.count(Category.id)).where(
             Category.family_id == family_id,
-        )) == 13
+        )) == 14
 
     historical = await ReportService(sessions).monthly_summary(CHAT_ID, 2026, 9)
     assert historical.total_grosz == 12550

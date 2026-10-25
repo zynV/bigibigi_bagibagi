@@ -64,8 +64,8 @@ async def cancel(message: Message, state: FSMContext, ui: ChatUI):
 async def categories_cmd(message: Message, budget: BudgetService, state: FSMContext, ui: ChatUI):
     rows = await budget.categories(message.chat.id)
     await clear_expense(message.bot, message.chat.id, state)
-    await ui.show(message.bot, message.chat.id, "🗂 <b>Категорії витрат</b>",
-                  categories_keyboard(rows))
+    await ui.show(message.bot, message.chat.id, "🗂 <b>Перегляд витрат за категоріями</b>",
+                  categories_keyboard(rows, browsing=True))
 
 
 @router.callback_query(F.data == "menu:categories")
@@ -73,5 +73,5 @@ async def categories_cb(call: CallbackQuery, budget: BudgetService, state: FSMCo
     rows = await budget.categories(call.message.chat.id)
     await call.answer()
     await clear_expense(call.bot, call.message.chat.id, state)
-    await ui.show(call.bot, call.message.chat.id, "🗂 <b>Категорії витрат</b>",
-                  categories_keyboard(rows), message_id=call.message.message_id)
+    await ui.show(call.bot, call.message.chat.id, "🗂 <b>Перегляд витрат за категоріями</b>",
+                  categories_keyboard(rows, browsing=True), message_id=call.message.message_id)

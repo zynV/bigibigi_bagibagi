@@ -20,7 +20,7 @@ from app.services.backup import BackupManager, backup_loop
 from app.bot.ui import ChatUI
 from app.bot.middlewares.access import AccessMiddleware
 from app.bot.middlewares.cleanup import CommandCleanupMiddleware
-from app.bot.handlers import general, expenses, reports, export
+from app.bot.handlers import general, expenses, reports, categories, export
 
 
 async def main() -> None:
@@ -40,7 +40,7 @@ async def main() -> None:
         dp.message.outer_middleware(access)
         dp.message.middleware(CommandCleanupMiddleware())
         dp.callback_query.outer_middleware(access)
-        dp.include_routers(general.router, expenses.router, reports.router, export.router)
+        dp.include_routers(general.router, expenses.router, reports.router, categories.router, export.router)
         bot = Bot(cfg.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
         backup_task = asyncio.create_task(backup_loop(BackupManager(cfg.database_path, cfg.backup_dir)))
         try:
