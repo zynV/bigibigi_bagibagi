@@ -82,6 +82,7 @@ async def receive_amount(message: Message, state: FSMContext):
         )
         await delete_message(message.bot, message.chat.id, data.get("error_id"))
         await state.update_data(error_id=warning.message_id)
+        await delete_message(message.bot, message.chat.id, message.message_id)
         return
     note_line = f"\n📝 {escape(note)}" if note else ""
     confirmation = await message.answer(
@@ -96,6 +97,7 @@ async def receive_amount(message: Message, state: FSMContext):
     await state.set_state(ExpenseState.waiting_for_confirmation)
     await delete_message(message.bot, message.chat.id, data.get("prompt_id"))
     await delete_message(message.bot, message.chat.id, data.get("error_id"))
+    await delete_message(message.bot, message.chat.id, message.message_id)
 
 
 @router.callback_query(F.data.startswith("ok:"))

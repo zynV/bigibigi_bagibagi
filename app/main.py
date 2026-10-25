@@ -19,6 +19,7 @@ from app.services.reports import ReportService
 from app.services.backup import BackupManager, backup_loop
 from app.bot.ui import ChatUI
 from app.bot.middlewares.access import AccessMiddleware
+from app.bot.middlewares.cleanup import CommandCleanupMiddleware
 from app.bot.handlers import general, expenses, reports, export
 
 
@@ -37,6 +38,7 @@ async def main() -> None:
         dp["reports"] = ReportService(sessions)
         access = AccessMiddleware(cfg)
         dp.message.outer_middleware(access)
+        dp.message.middleware(CommandCleanupMiddleware())
         dp.callback_query.outer_middleware(access)
         dp.include_routers(general.router, expenses.router, reports.router, export.router)
         bot = Bot(cfg.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))

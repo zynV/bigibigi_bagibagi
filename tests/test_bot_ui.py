@@ -27,6 +27,7 @@ class BotDouble:
     def __init__(self):
         self.messages = {}
         self.next_id = 100
+        self.next_input_id = 10000
         self.send_message = AsyncMock(side_effect=self._send)
         self.edit_message_text = AsyncMock(side_effect=self._edit)
         self.delete_message = AsyncMock(side_effect=self._delete)
@@ -66,8 +67,10 @@ def input_message(bot, text="/menu", user_id=11, reply_to=None):
     async def answer(text, **kwargs):
         return await bot.send_message(CHAT_ID, text, **kwargs)
 
+    bot.next_input_id += 1
     return SimpleNamespace(
         bot=bot, chat=SimpleNamespace(id=CHAT_ID), text=text,
+        message_id=bot.next_input_id,
         from_user=SimpleNamespace(id=user_id, full_name=f"Учасник {user_id}"),
         reply_to_message=SimpleNamespace(message_id=reply_to) if reply_to else None,
         answer=AsyncMock(side_effect=answer),
