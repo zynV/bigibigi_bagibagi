@@ -17,6 +17,7 @@ from app.db.seed import seed_database
 from app.services.budget import BudgetService
 from app.services.reports import ReportService
 from app.services.backup import BackupManager, backup_loop
+from app.bot.ui import ChatUI
 from app.bot.middlewares.access import AccessMiddleware
 from app.bot.handlers import general, expenses, reports, export
 
@@ -31,6 +32,7 @@ async def main() -> None:
         dp = Dispatcher(storage=MemoryStorage(), events_isolation=SimpleEventIsolation(),
                         fsm_strategy=FSMStrategy.USER_IN_CHAT)
         dp["config"] = cfg
+        dp["ui"] = ChatUI()
         dp["budget"] = BudgetService(sessions)
         dp["reports"] = ReportService(sessions)
         access = AccessMiddleware(cfg)
