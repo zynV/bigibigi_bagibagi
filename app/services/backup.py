@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -29,8 +30,8 @@ class BackupManager:
             raise FileNotFoundError(self.db_path)
         tmp = dest.with_suffix(".sqlite3.tmp")
         try:
-            with sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=30) as source:
-                with sqlite3.connect(tmp, timeout=30) as target:
+            with closing(sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=30)) as source:
+                with closing(sqlite3.connect(tmp, timeout=30)) as target:
                     source.backup(target)
             os.chmod(tmp, 0o600)
             os.replace(tmp, dest)
