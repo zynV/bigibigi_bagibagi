@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.db.models import Expense, Category, Family, User
-from app.services.dates import period_bounds
+from app.services.dates import period_bounds, month_bounds
 
 
 @dataclass(frozen=True)
@@ -39,6 +39,13 @@ class ReportService:
 
     async def summary(self, chat_id: int, period: str, now: datetime | None = None) -> Report:
         start, end = period_bounds(period, now)
+        return await self._summary(chat_id, start, end)
+
+    async def monthly_summary(self, chat_id: int, year: int, month: int) -> Report:
+        start, end = month_bounds(year, month)
+        return await self._summary(chat_id, start, end)
+
+    async def _summary(self, chat_id: int, start: str, end: str) -> Report:
         async with self.sessions() as session:
             family_id = await self._family_id(session, chat_id)
             filt = (Expense.family_id == family_id, Expense.deleted_at.is_(None),

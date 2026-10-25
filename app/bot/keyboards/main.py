@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from app.db.models import Category
+from app.services.dates import current_month, shift_month
 
 
 def main_keyboard() -> InlineKeyboardMarkup:
@@ -11,10 +14,11 @@ def main_keyboard() -> InlineKeyboardMarkup:
         ("➕ Додати витрату", "menu:add"),
         ("📅 Сьогодні", "menu:today"), ("📆 Тиждень", "menu:week"),
         ("📊 Місяць", "menu:month"), ("📜 Історія", "menu:history"),
+        ("🗓 Попередні місяці", "menu:months"),
         ("🗂 Категорії", "menu:categories"), ("↩️ Скасувати останню", "menu:undo"),
     ):
         builder.button(text=text, callback_data=code)
-    builder.adjust(1, 2, 2, 2)
+    builder.adjust(1, 2, 2, 1, 2)
     return builder.as_markup()
 
 
@@ -22,6 +26,30 @@ def back_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="⬅️ Головне меню", callback_data="menu:main"),
     ]])
+
+
+def month_keyboard(
+    year: int, month: int, *, now: datetime | None = None,
+) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    selected, current = (year, month), current_month(now)
+    navigation = []
+    if selected > (1, 1):
+        previous_year, previous_month = shift_month(year, month, -1)
+        navigation.append(InlineKeyboardButton(
+            text="⬅️ Раніше", callback_data=f"month:{previous_year:04d}-{previous_month:02d}",
+        ))
+    if selected < current:
+        next_year, next_month = shift_month(year, month, 1)
+        navigation.append(InlineKeyboardButton(
+            text="Пізніше ➡️", callback_data=f"month:{next_year:04d}-{next_month:02d}",
+        ))
+    if navigation:
+        builder.row(*navigation)
+    if selected != current:
+        builder.row(InlineKeyboardButton(text="📊 Поточний місяць", callback_data="menu:month"))
+    builder.row(InlineKeyboardButton(text="⬅️ Головне меню", callback_data="menu:main"))
+    return builder.as_markup()
 
 
 def categories_keyboard(categories: list[Category]) -> InlineKeyboardMarkup:

@@ -15,7 +15,7 @@ HELP = (
     "Тут ви разом записуєте витрати у PLN.\n\n"
     "➕ Додати витрату → обрати категорію → ввести суму → підтвердити.\n"
     "Можна вказати коментар одразу після суми: <code>125,50 Biedronka</code>.\n\n"
-    "Команди: /menu, /add, /today, /week, /month, /history, "
+    "Команди: /menu, /add, /today, /week, /month, /months, /history, "
     "/categories, /undo, /cancel, /export (адмін), /settings, /help."
 )
 

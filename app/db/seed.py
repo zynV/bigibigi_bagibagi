@@ -9,8 +9,10 @@ from app.db.models import Family, FamilyMember, User, Category
 DEFAULT_CATEGORIES = (
     ("Продукти", "🛒"), ("Транспорт", "🚗"), ("Житло", "🏠"),
     ("Здоров’я", "💊"), ("Кафе та ресторани", "☕"), ("Одяг", "👕"),
-    ("Розваги", "🎮"), ("Діти", "👶"), ("Підписки", "📱"), ("Інше", "📦"),
+    ("Розваги", "🎮"), ("Подорожі", "✈️"), ("Подарунки", "🎁"),
+    ("Покупки", "🛍️"), ("Підписки", "📱"), ("Інше", "📦"),
 )
+RETIRED_CATEGORIES = frozenset({"Діти"})
 
 
 def utc_now() -> str:
@@ -39,9 +41,18 @@ async def seed_database(factory: async_sessionmaker[AsyncSession], cfg: Settings
             membership = await session.get(FamilyMember, (family.id, user.id))
             if membership is None:
                 session.add(FamilyMember(family_id=family.id, user_id=user.id, joined_at=utc_now()))
-        existing = {c.name for c in (await session.scalars(
+        existing = {c.name: c for c in (await session.scalars(
             select(Category).where(Category.family_id == family.id))).all()}
+        # Preserve category IDs and all expenses already referencing retired categories.
+        for name in RETIRED_CATEGORIES:
+            if name in existing:
+                existing[name].is_active = False
         for order, (name, emoji) in enumerate(DEFAULT_CATEGORIES):
-            if name not in existing:
+            category = existing.get(name)
+            if category is None:
                 session.add(Category(family_id=family.id, name=name, emoji=emoji,
                                      sort_order=order, is_active=True))
+            else:
+                category.emoji = emoji
+                category.sort_order = order
+                category.is_active = True
