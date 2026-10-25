@@ -1,0 +1,18 @@
+services:
+  family-budget-bot:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_PATH: /app/data/budget.sqlite3
+      BACKUP_DIR: /app/backups
+    volumes:
+      - budget_data:/app/data
+      - budget_backups:/app/backups
+    # No inbound ports: Telegram connection is outbound via long polling.
+    security_opt:
+      - no-new-privileges:true
+volumes:
+  budget_data:
+  budget_backups:
