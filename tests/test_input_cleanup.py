@@ -96,7 +96,7 @@ async def test_command_still_succeeds_when_telegram_refuses_deletion(error_class
 
 
 @pytest.mark.asyncio
-async def test_amount_with_note_is_deleted_after_confirmation_is_created():
+async def test_amount_with_note_is_kept_until_completion():
     bot, ui, state = BotDouble(), ChatUI(), make_state()
     budget, _ = services()
     menu_id = await ui.show(bot, CHAT_ID, MAIN_TEXT, main_keyboard())
@@ -111,11 +111,15 @@ async def test_amount_with_note_is_deleted_after_confirmation_is_created():
     assert data["note"] == "Kaufland"
     assert "Kaufland" in bot.messages[data["confirmation_id"]].text
     assert await state.get_state() == ExpenseState.waiting_for_confirmation.state
-    bot.delete_message.assert_any_await(chat_id=CHAT_ID, message_id=message.message_id)
+    assert data["input_message_ids"] == [message.message_id]
+    assert all(
+        call.kwargs["message_id"] != message.message_id
+        for call in bot.delete_message.await_args_list
+    )
 
 
 @pytest.mark.asyncio
-async def test_invalid_amount_is_deleted_but_retry_prompt_remains():
+async def test_invalid_amount_is_kept_with_its_retry_prompt():
     bot, ui, state = BotDouble(), ChatUI(), make_state()
     budget, _ = services()
     menu_id = await ui.show(bot, CHAT_ID, MAIN_TEXT, main_keyboard())
@@ -129,7 +133,7 @@ async def test_invalid_amount_is_deleted_but_retry_prompt_remains():
     assert prompt_id in bot.messages
     assert data["error_id"] in bot.messages
     assert await state.get_state() == ExpenseState.waiting_for_amount.state
-    bot.delete_message.assert_awaited_once_with(chat_id=CHAT_ID, message_id=message.message_id)
+    bot.delete_message.assert_not_awaited()
 
 
 @pytest.mark.asyncio

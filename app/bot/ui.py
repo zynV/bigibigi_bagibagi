@@ -13,23 +13,39 @@ logger = logging.getLogger(__name__)
 MAIN_TEXT = "<b>💰 Сімейний бюджет</b>\nОберіть дію:"
 
 
-async def delete_message(bot: Bot, chat_id: int, message_id: int | None) -> None:
+DELETE_PERMISSION_NOTICE = (
+    "⚠️ Витрату збережено, але Telegram не дозволив прибрати ваше повідомлення. "
+    "Перевірте, що бот є адміністратором групи з правом «Видаляти повідомлення»."
+)
+
+
+async def delete_message(bot: Bot, chat_id: int, message_id: int | None) -> bool:
     if message_id is None:
-        return
+        return True
     try:
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
-    except (TelegramBadRequest, TelegramForbiddenError):
-        # Deleted/expired messages or missing permissions must not break the flow.
-        logger.debug("Could not remove interface message %s in chat %s", message_id, chat_id)
+        return True
+    except (TelegramBadRequest, TelegramForbiddenError) as exc:
+        if isinstance(exc, TelegramBadRequest) and "message to delete not found" in exc.message.lower():
+            return True
+        logger.warning("Could not delete message %s in chat %s: %s", message_id, chat_id, exc.message)
+        return False
 
 
-async def clear_expense(bot: Bot, chat_id: int, state: FSMContext) -> None:
-    """Remove only this user's temporary bot messages, then reset their form."""
+async def clear_expense(
+    bot: Bot, chat_id: int, state: FSMContext, *, remove_input: bool = True,
+) -> bool:
+    """Clear this user's form and return whether their input was removed."""
     data = await state.get_data()
     await state.clear()
-    message_ids = {data.get(key) for key in ("prompt_id", "confirmation_id", "error_id")}
-    for message_id in message_ids - {None}:
-        await delete_message(bot, chat_id, message_id)
+    bot_ids = {data.get(key) for key in ("prompt_id", "confirmation_id", "error_id")} - {None}
+    input_ids = set(data.get("input_message_ids", [])) if remove_input else set()
+    input_removed = True
+    for message_id in sorted(bot_ids | input_ids):
+        removed = await delete_message(bot, chat_id, message_id)
+        if message_id in input_ids and not removed:
+            input_removed = False
+    return input_removed
 
 
 class ChatUI:

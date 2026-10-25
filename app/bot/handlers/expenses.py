@@ -11,7 +11,7 @@ from aiogram.types import Message, CallbackQuery, ForceReply
 from app.config import Settings
 from app.bot.states.expense import ExpenseState
 from app.bot.keyboards.main import categories_keyboard, confirmation_keyboard, main_keyboard
-from app.bot.ui import ChatUI, MAIN_TEXT, clear_expense, delete_message
+from app.bot.ui import ChatUI, MAIN_TEXT, DELETE_PERMISSION_NOTICE, clear_expense, delete_message
 from app.bot.handlers.reports import send_history
 from app.services.money import money, parse_expense
 from app.services.budget import BudgetService
@@ -74,6 +74,10 @@ async def receive_amount(message: Message, state: FSMContext):
     # Leave unrelated group conversation alone.
     if not message.reply_to_message or message.reply_to_message.message_id != data.get("prompt_id"):
         return
+    input_ids = list(data.get("input_message_ids", []))
+    if message.message_id not in input_ids:
+        input_ids.append(message.message_id)
+    await state.update_data(input_message_ids=input_ids)
     try:
         amount, note = parse_expense(message.text)
     except ValueError as exc:
@@ -82,7 +86,6 @@ async def receive_amount(message: Message, state: FSMContext):
         )
         await delete_message(message.bot, message.chat.id, data.get("error_id"))
         await state.update_data(error_id=warning.message_id)
-        await delete_message(message.bot, message.chat.id, message.message_id)
         return
     note_line = f"\n📝 {escape(note)}" if note else ""
     confirmation = await message.answer(
@@ -97,7 +100,6 @@ async def receive_amount(message: Message, state: FSMContext):
     await state.set_state(ExpenseState.waiting_for_confirmation)
     await delete_message(message.bot, message.chat.id, data.get("prompt_id"))
     await delete_message(message.bot, message.chat.id, data.get("error_id"))
-    await delete_message(message.bot, message.chat.id, message.message_id)
 
 
 @router.callback_query(F.data.startswith("ok:"))
@@ -117,7 +119,7 @@ async def confirm(
             display_name=call.from_user.full_name,
         )
     except ValueError:
-        await clear_expense(call.bot, call.message.chat.id, state)
+        await clear_expense(call.bot, call.message.chat.id, state, remove_input=False)
         await ui.show(call.bot, call.message.chat.id,
                       "⚠️ Категорія або сума вже неактуальні. Створіть нову витрату.",
                       main_keyboard())
@@ -132,7 +134,9 @@ async def confirm(
         f"📅 Сьогодні витрачено: <b>{money(today.total_grosz)}</b>"
     )
     await ui.show(call.bot, call.message.chat.id, text, main_keyboard())
-    await clear_expense(call.bot, call.message.chat.id, state)
+    if not await clear_expense(call.bot, call.message.chat.id, state):
+        await ui.show(call.bot, call.message.chat.id,
+                      f"{text}\n\n{DELETE_PERMISSION_NOTICE}", main_keyboard())
 
 
 @router.callback_query(F.data.startswith("no:"))
